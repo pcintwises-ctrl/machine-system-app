@@ -29,12 +29,13 @@ async def upload_image(
     with open(file_location, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
     
-    image_data = {
-        "machine_id": machine_id,
-        "filename": file.filename,
-        "description": description,
-        "url": f"http://localhost:8000/images/{file.filename}"
-    }
+    # เปลี่ยนจาก localhost เป็น URL ของ Render ของคุณ
+image_data = {
+    "machine_id": machine_id,
+    "filename": file.filename,
+    "description": description,
+    "url": f"https://machine-backend.onrender.com/images/{file.filename}" 
+}
     await image_collection.insert_one(image_data)
     return {"status": "Success", "message": "บันทึกข้อมูลเครื่องเรียบร้อย!"}
 
@@ -49,4 +50,5 @@ async def get_machine(m_id: str):
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)
