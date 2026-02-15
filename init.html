@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Machine Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Kanit', sans-serif; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex">
+
+    <div class="w-64 bg-slate-800 text-white flex flex-col p-4 shadow-xl fixed h-full">
+        <h2 class="text-xl font-bold mb-8 text-center border-b pb-4">Machine System</h2>
+        <nav class="flex-1">
+            <button onclick="showTab('upload-tab')" class="w-full py-3 px-4 mb-2 rounded hover:bg-slate-700 text-left transition flex items-items-center gap-2">
+                <span>📤</span> Upload & Monitor
+            </button>
+            <button onclick="showTab('view-tab')" class="w-full py-3 px-4 rounded hover:bg-slate-700 text-left transition flex items-center gap-2">
+                <span>🔍</span> Check Machine
+            </button>
+        </nav>
+        <div class="text-xs text-slate-500 text-center">Connected to MongoDB Atlas</div>
+    </div>
+
+    <div class="flex-1 ml-64 p-10">
+        
+        <div id="upload-tab" class="tab-content active">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                
+                <div class="bg-white p-8 rounded-2xl shadow-lg border-t-4 border-red-600">
+                    <h2 class="text-2xl font-bold mb-6 text-slate-800">Upload Image</h2>
+                    <div class="space-y-4">
+                        <label class="block text-sm font-medium text-gray-700">Machine ID</label>
+                        <input type="text" id="m-id-input" placeholder="เช่น M-001" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-red-500 outline-none">
+                        
+                        <label class="block text-sm font-medium text-gray-700">Image File</label>
+                        <div class="border-2 border-dashed border-gray-300 p-8 rounded-xl text-center hover:border-red-400 cursor-pointer relative bg-gray-50">
+                            <input type="file" id="file-input" class="absolute inset-0 opacity-0 cursor-pointer">
+                            <div class="flex flex-col items-center">
+                                <span class="text-4xl mb-2">☁️</span>
+                                <p class="text-gray-400">ลากรูปมาวางหรือคลิกที่นี่</p>
+                            </div>
+                        </div>
+                        
+                        <label class="block text-sm font-medium text-gray-700">Description</label>
+                        <input type="text" id="desc-input" placeholder="คำอธิบายอาการเครื่อง..." class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-red-500 outline-none">
+                        
+                        <button onclick="uploadData()" class="w-full bg-red-600 text-white py-3 rounded-lg font-bold shadow-md hover:bg-red-700 transition transform active:scale-95">
+                            บันทึกและอัปโหลดข้อมูล
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-white p-8 rounded-2xl shadow-lg border-t-4 border-blue-500">
+                    <h2 class="text-2xl font-bold mb-6 text-slate-800">Real-time Power Monitor</h2>
+                    <div class="relative h-[350px]">
+                        <canvas id="monitoringChart"></canvas>
+                    </div>
+                    <div class="mt-6 p-4 bg-blue-50 rounded-lg flex justify-around text-center">
+                        <div>
+                            <p class="text-xs text-blue-600 font-bold uppercase">Voltage (V)</p>
+                            <p id="v-val" class="text-2xl font-bold text-slate-800">0</p>
+                        </div>
+                        <div class="border-l border-blue-200"></div>
+                        <div>
+                            <p class="text-xs text-blue-600 font-bold uppercase">Current (A)</p>
+                            <p id="i-val" class="text-2xl font-bold text-slate-800">0</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-tab" class="tab-content">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="bg-white p-6 rounded-2xl shadow-lg border-t-4 border-slate-800">
+                    <h2 class="text-xl font-bold mb-4">ค้นหาข้อมูลเครื่องจักร</h2>
+                    <div class="flex gap-2 mb-6">
+                        <input type="text" id="search-id" placeholder="ใส่เลขเครื่อง..." class="flex-1 p-2 border rounded-lg outline-none focus:border-slate-800">
+                        <button onclick="searchMachine()" class="bg-slate-800 text-white px-6 py-2 rounded-lg hover:bg-slate-700 transition">ค้นหา</button>
+                    </div>
+                    <div id="result-area" class="hidden animate-fade-in">
+                        <div class="w-full h-[400px] bg-gray-200 rounded-lg overflow-hidden border mb-4">
+                            <img id="res-img" src="" class="w-full h-full object-contain">
+                        </div>
+                        <div class="p-4 bg-gray-50 rounded-lg">
+                            <p id="res-desc" class="text-gray-700 font-medium"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-lg border-t-4 border-green-600">
+                    <h2 class="text-xl font-bold mb-4">รายงานปัญหาและวิธีแก้</h2>
+                    <label class="block text-sm font-medium mb-1">ปัญหาที่เกิดกับเครื่องนี้:</label>
+                    <textarea id="problem-input" class="w-full p-3 border rounded-lg h-32 mb-4 focus:ring-2 focus:ring-green-500 outline-none" placeholder="พิมพ์ปัญหาที่พบ เช่น เครื่องร้อน, เสียงดัง..."></textarea>
+                    
+                    <label class="block text-sm font-medium mb-1 text-green-600">คำแนะนำเบื้องต้น:</label>
+                    <div id="solution-output" class="w-full p-4 bg-green-50 border border-green-200 rounded-lg min-h-[120px] text-green-800 italic">
+                        รอระบุปัญหา...
+                    </div>
+                    <button onclick="getSolution()" class="mt-4 w-full bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700 transition shadow-md">
+                        รับวิธีแก้ปัญหา
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. ระบบ Tab ---
+        function showTab(id) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        // --- 2. ระบบ Upload (เชื่อม Render) ---
+        async function uploadData() {
+            const file = document.getElementById('file-input').files[0];
+            const desc = document.getElementById('desc-input').value;
+            const mId = document.getElementById('m-id-input').value;
+
+            if(!file || !mId) return alert("กรุณาใส่เลขเครื่องและเลือกรูปภาพครับเพื่อน");
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('description', desc);
+            formData.append('machine_id', mId);
+
+            try {
+                const res = await fetch('https://machine-backend-ay9v.onrender.com/upload', { method: 'POST', body: formData });
+                const data = await res.json();
+                alert(data.message);
+            } catch (err) {
+                alert("เกิดข้อผิดพลาดในการเชื่อมต่อ Server ครับ");
+            }
+        }
+
+        // --- 3. ระบบ Search ---
+        async function searchMachine() {
+            const id = document.getElementById('search-id').value;
+            try {
+                const res = await fetch(`https://machine-backend-ay9v.onrender.com/get-machine/${id}`);
+                const data = await res.json();
+                if(data.error) return alert(data.error);
+                
+                document.getElementById('result-area').classList.remove('hidden');
+                document.getElementById('res-img').src = data.url;
+                document.getElementById('res-desc').innerText = "📍 " + data.description;
+            } catch (err) {
+                alert("ไม่พบข้อมูลหรือ Server ขัดข้องครับ");
+            }
+        }
+
+        // --- 4. ระบบวิเคราะห์ปัญหา (Logic เบื้องต้น) ---
+        function getSolution() {
+            const problem = document.getElementById('problem-input').value;
+            let solution = "ระบบยังไม่พบข้อมูลปัญหาที่ระบุ ลองแจ้งปัญหาอื่นดูครับเพื่อน";
+            
+            if(problem.includes("ร้อน")) solution = "✅ 1. ปิดเครื่องพัก 15 นาที\n✅ 2. เช็คพัดลมระบายอากาศ\n✅ 3. ตรวจสอบระดับน้ำมันหล่อลื่น";
+            else if(problem.includes("เสียงดัง")) solution = "✅ 1. ตรวจสอบลูกปืนเพลาขับ\n✅ 2. เช็คการยึดน็อตฐานเครื่อง\n✅ 3. ตรวจสอบสายพานว่าหย่อนหรือไม่";
+            else if(problem.includes("สั่น")) solution = "✅ 1. เช็คความสมดุลของโรเตอร์\n✅ 2. ตรวจสอบการยึดโครงสร้างฐาน";
+            
+            document.getElementById('solution-output').innerText = solution;
+        }
+
+        // --- 5. ระบบกราฟ (Real-time Chart.js) ---
+        const ctx = document.getElementById('monitoringChart').getContext('2d');
+        let labels = [];
+        let voltageData = [];
+        let currentData = [];
+
+        const monitoringChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: 'Voltage (V)', data: voltageData, borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.1)', yAxisID: 'y', tension: 0.3, fill: true },
+                    { label: 'Current (A)', data: currentData, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', yAxisID: 'y1', tension: 0.3, fill: true }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { grid: { display: false } },
+                    y: { type: 'linear', position: 'left', min: 210, max: 240, title: { display: true, text: 'Voltage (V)' } },
+                    y1: { type: 'linear', position: 'right', min: 0, max: 15, title: { display: true, text: 'Current (A)' }, grid: { drawOnChartArea: false } }
+                }
+            }
+        });
+
+        // ฟังก์ชันสุ่มค่าจำลอง
+        setInterval(() => {
+            const time = new Date().toLocaleTimeString();
+            const v = (220 + (Math.random() * 10 - 5)).toFixed(1);
+            const i = (5 + (Math.random() * 4 - 2)).toFixed(2);
+
+            if (labels.length > 15) { labels.shift(); voltageData.shift(); currentData.shift(); }
+            labels.push(time); voltageData.push(v); currentData.push(i);
+            
+            document.getElementById('v-val').innerText = v + " V";
+            document.getElementById('i-val').innerText = i + " A";
+            monitoringChart.update('none'); // update without animation for performance
+        }, 1500);
+    </script>
+</body>
+</html>
