@@ -23,19 +23,22 @@ app.mount("/images", StaticFiles(directory=UPLOAD_DIR), name="images")
 async def upload_image(
     file: UploadFile = File(...), 
     description: str = Form(...),
-    machine_id: str = Form(...) # รับหมายเลขเครื่องเพิ่ม
+    machine_id: str = Form(...)
 ):
+    # บรรทัดด้านล่างนี้ต้องมีย่อหน้าเข้าไป 4 ช่อง (หรือ 1 Tab) เพื่อให้อยู่ในฟังก์ชัน
     file_location = os.path.join(UPLOAD_DIR, file.filename)
     with open(file_location, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
     
-    # เปลี่ยนจาก localhost เป็น URL ของ Render ของคุณ
-image_data = {
-    "machine_id": machine_id,
-    "filename": file.filename,
-    "description": description,
-    "url": f"https://machine-backend.onrender.com/images/{file.filename}" 
-}
+    # จัดการข้อมูลรูปภาพและที่อยู่ URL บน Render
+    image_data = {
+        "machine_id": machine_id,
+        "filename": file.filename,
+        "description": description,
+        "url": f"https://machine-backend-ay9v.onrender.com/images/{file.filename}" 
+    }
+    
+    # บันทึกลง MongoDB และส่งผลลัพธ์กลับ
     await image_collection.insert_one(image_data)
     return {"status": "Success", "message": "บันทึกข้อมูลเครื่องเรียบร้อย!"}
 
@@ -50,5 +53,4 @@ async def get_machine(m_id: str):
 
 if __name__ == "__main__":
     import uvicorn
-
     uvicorn.run(app, host="0.0.0.0", port=8000)
